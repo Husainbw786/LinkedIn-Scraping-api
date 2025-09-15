@@ -1,0 +1,62 @@
+2025-09-12 21:01:33 | INFO     | main:search_jobs:53 - Processing resume: Husain_Baghwala.pdf
+2025-09-12 21:01:33 | INFO     | services.resume_parser:parse_pdf:84 - Extracted 3603 characters from resume
+2025-09-12 21:01:33 | WARNING  | services.resume_parser:_extract_keywords:225 - Keyword extraction failed: 
+**********************************************************************
+  Resource [93mpunkt_tab[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('punkt_tab')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mtokenizers/punkt_tab/english/[0m
+
+  Searched in:
+    - '/Users/husain_bw/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/share/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2025-09-12 21:01:33 | INFO     | main:search_jobs:57 - Searching LinkedIn jobs for skills: ['python', 'pandas', 'postman', 'postgresql', 'git']
+2025-09-12 21:01:33 | INFO     | services.linkedin_scraper:search_jobs:101 - Starting LinkedIn job search for skills: ['python', 'pandas', 'postman', 'postgresql', 'git']
+2025-09-12 21:01:33 | INFO     | services.linkedin_scraper:_search_with_requests:148 - Scraping page 1: https://www.linkedin.com/jobs/search?keywords=python+OR+pandas+OR+postman+OR+postgresql+OR+git&location=United+States&f_TPR=r2592000&f_JT=F&start=0
+2025-09-12 21:01:39 | INFO     | services.linkedin_scraper:search_jobs:119 - Found 20 unique jobs
+2025-09-12 21:01:39 | INFO     | services.job_matcher:rank_jobs:37 - Ranking 20 jobs against resume
+2025-09-12 21:01:39 | INFO     | services.job_matcher:rank_jobs:48 - Top job match: Python Software Engineer - Remote at Lensa (Score: 34.94)
+2025-09-15 17:40:25 | INFO     | main:search_jobs:53 - Processing resume: Husain_Baghwala.pdf
+2025-09-15 17:40:26 | INFO     | services.resume_parser:parse_pdf:84 - Extracted 3603 characters from resume
+2025-09-15 17:40:26 | WARNING  | services.resume_parser:_extract_keywords:225 - Keyword extraction failed: 
+**********************************************************************
+  Resource [93mpunkt_tab[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('punkt_tab')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mtokenizers/punkt_tab/english/[0m
+
+  Searched in:
+    - '/Users/husain_bw/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/share/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2025-09-15 17:40:26 | INFO     | main:search_jobs:57 - Searching LinkedIn jobs for skills: ['c++', 'sql', 'node.js', 'pandas', 'jupyter']
+2025-09-15 17:40:26 | INFO     | services.linkedin_scraper:search_jobs:101 - Starting LinkedIn job search for skills: ['c++', 'sql', 'node.js', 'pandas', 'jupyter']
+2025-09-15 17:40:26 | INFO     | services.linkedin_scraper:_search_with_requests:148 - Scraping page 1: https://www.linkedin.com/jobs/search?keywords=c%2B%2B+OR+sql+OR+node.js+OR+pandas+OR+jupyter&location=United+States&f_TPR=r2592000&f_JT=F&start=0
+2025-09-15 17:40:31 | INFO     | services.linkedin_scraper:search_jobs:119 - Found 20 unique jobs
+2025-09-15 17:40:31 | INFO     | services.job_matcher:rank_jobs:37 - Ranking 20 jobs against resume
+2025-09-15 17:40:31 | INFO     | services.job_matcher:rank_jobs:48 - Top job match: Senior Software Engineer at Scouto AI (Score: 36.72)
