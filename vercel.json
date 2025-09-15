@@ -1,24 +1,15 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "api/index.py"
-    }
-  ],
-  "env": {
-    "PYTHONPATH": "/var/task:/var/task/api"
-  },
   "functions": {
     "api/index.py": {
+      "runtime": "python3.9",
       "maxDuration": 60,
       "memory": 1024
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.py"
+    }
+  ]
 }
