@@ -252,3 +252,4 @@ MIT License - see LICENSE file for details.
 ## Disclaimer
 
 This tool is for educational and personal use only. Users are responsible for complying with LinkedIn's Terms of Service and applicable laws regarding web scraping.
+# LinkedIn-api
