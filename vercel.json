@@ -13,11 +13,12 @@
     }
   ],
   "env": {
-    "PYTHONPATH": "/var/task"
+    "PYTHONPATH": "/var/task:/var/task/api"
   },
   "functions": {
     "api/index.py": {
-      "maxDuration": 30
+      "maxDuration": 60,
+      "memory": 1024
     }
   }
 }

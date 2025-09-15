@@ -94,6 +94,8 @@ async def root():
     """Root endpoint"""
     return {"message": "LinkedIn Job Scraper API", "docs": "/docs"}
 
-# Vercel handler
-def handler(request, response):
-    return app(request, response)
+# Export the app for Vercel
+# This is the main entry point for Vercel
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
