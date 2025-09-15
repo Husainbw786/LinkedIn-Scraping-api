@@ -60,3 +60,31 @@
 2025-09-15 17:40:31 | INFO     | services.linkedin_scraper:search_jobs:119 - Found 20 unique jobs
 2025-09-15 17:40:31 | INFO     | services.job_matcher:rank_jobs:37 - Ranking 20 jobs against resume
 2025-09-15 17:40:31 | INFO     | services.job_matcher:rank_jobs:48 - Top job match: Senior Software Engineer at Scouto AI (Score: 36.72)
+2025-09-15 22:31:07 | INFO     | main:search_jobs:53 - Processing resume: Husain_Baghwala.pdf
+2025-09-15 22:31:07 | INFO     | services.resume_parser:parse_pdf:84 - Extracted 3603 characters from resume
+2025-09-15 22:31:07 | WARNING  | services.resume_parser:_extract_keywords:225 - Keyword extraction failed: 
+**********************************************************************
+  Resource [93mpunkt_tab[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('punkt_tab')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mtokenizers/punkt_tab/english/[0m
+
+  Searched in:
+    - '/Users/husain_bw/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/share/nltk_data'
+    - '/Library/Frameworks/Python.framework/Versions/3.11/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2025-09-15 22:31:07 | INFO     | main:search_jobs:57 - Searching LinkedIn jobs for skills: ['go', 'sql', 'python', 'node.js', 'postgresql']
+2025-09-15 22:31:11 | INFO     | services.job_matcher:rank_jobs:37 - Ranking 20 jobs against resume
+2025-09-15 22:31:12 | INFO     | services.job_matcher:rank_jobs:48 - Top job match: Software Engineer, 2025 Recent Graduate at Duolingo (Score: 32.72)
