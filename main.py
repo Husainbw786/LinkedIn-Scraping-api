@@ -85,6 +85,11 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "LinkedIn Job Scraper API"}
 
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "LinkedIn Job Scraper API", "docs": "/docs"}
+
 if __name__ == "__main__":
     import uvicorn
     
