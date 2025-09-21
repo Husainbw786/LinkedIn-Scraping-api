@@ -1,31 +1,48 @@
-# LinkedIn Job Scraper API
+# LinkedIn Job Scraper & Candidate Finder API
 
-A FastAPI-based service that takes resume PDFs as input and finds relevant job opportunities on LinkedIn. The system parses resume content, extracts skills and experience, then scrapes LinkedIn for matching jobs with intelligent ranking.
+A comprehensive FastAPI-based service that provides **two-way matching**:
+1. **Job Search**: Takes resume PDFs and finds relevant LinkedIn job opportunities
+2. **Candidate Search**: Takes job descriptions and finds qualified candidates actively looking for work
 
 ## Features
 
+### Job Search (Resume → Jobs)
 - **Resume PDF Parsing**: Extract skills, experience, education, and keywords from PDF resumes
 - **LinkedIn Job Scraping**: Multi-strategy scraping with anti-detection measures
 - **Intelligent Job Matching**: ML-based ranking algorithm using TF-IDF similarity
+
+### Candidate Search (Job Description → Candidates) 🆕
+- **Job Description Analysis**: Extract required and preferred skills from job descriptions
+- **LinkedIn Candidate Scraping**: Find professionals with matching skills and experience
+- **Smart Candidate Ranking**: Score candidates based on skill match, experience level, and availability
+- **Open-to-Work Detection**: Prioritize candidates actively seeking opportunities
+
+### Common Features
 - **Rate Limiting**: Built-in delays and retry logic to avoid detection
 - **RESTful API**: Clean FastAPI endpoints with automatic documentation
 - **Comprehensive Logging**: Structured logging with rotation and error tracking
+- **Flexible Matching**: Support for both exact and fuzzy skill matching
 
 ## Architecture
 
 ```
-├── main.py                 # FastAPI application entry point
+├── api/
+│   └── index.py           # FastAPI application with all endpoints
 ├── models/
-│   └── schemas.py         # Pydantic data models
+│   └── schemas.py         # Pydantic data models for jobs and candidates
 ├── services/
 │   ├── resume_parser.py   # PDF parsing and text extraction
 │   ├── linkedin_scraper.py # LinkedIn job scraping
-│   └── job_matcher.py     # Job ranking and matching
+│   ├── job_matcher.py     # Job ranking and matching
+│   ├── candidate_scraper.py # LinkedIn candidate scraping 🆕
+│   └── candidate_matcher.py # Candidate ranking and matching 🆕
 ├── utils/
 │   ├── logger_config.py   # Logging configuration
 │   └── exceptions.py      # Custom exceptions
 └── tests/
-    └── test_api.py        # API testing suite
+    ├── test_api.py        # API testing suite
+    ├── test_candidate_api.py # Candidate API tests 🆕
+    └── example_usage.py   # Usage examples 🆕
 ```
 
 ## Installation
@@ -56,10 +73,43 @@ nltk.download('stopwords')
 ### Start the API Server
 
 ```bash
+# Using uvicorn directly (recommended)
+uvicorn api.index:app --reload --port 8000
+
+# Or using the main.py file
 python main.py
 ```
 
 The API will be available at `http://localhost:8000`
+
+### Quick Examples
+
+#### 1. Test the API
+```bash
+# Run the test script
+python test_candidate_api.py
+
+# Run usage examples
+python example_usage.py
+```
+
+#### 2. Find Candidates for a Job
+```python
+import requests
+
+response = requests.post("http://localhost:8000/api/v1/find-candidates", json={
+    "job_description": {
+        "title": "Python Developer",
+        "company": "Your Company",
+        "description": "Looking for Python developer with Django experience",
+        "required_skills": ["Python", "Django"],
+        "location": "Remote"
+    }
+})
+
+candidates = response.json()["candidates"]
+print(f"Found {len(candidates)} candidates!")
+```
 
 ### API Documentation
 
@@ -109,6 +159,79 @@ curl -X POST "http://localhost:8000/api/v1/search-jobs" \
   "search_parameters": {
     "location": "San Francisco, CA",
     "max_results": 10
+  }
+}
+```
+
+#### POST `/api/v1/find-candidates` 🆕
+
+Find and rank candidates based on job description.
+
+**Request Body**:
+```json
+{
+  "job_description": {
+    "title": "Senior Python Developer",
+    "company": "TechCorp Inc",
+    "description": "We are looking for a Senior Python Developer with experience in Django, FastAPI, AWS...",
+    "required_skills": ["Python", "Django", "FastAPI"],
+    "preferred_skills": ["AWS", "Docker", "Kubernetes"],
+    "experience_level": "senior",
+    "location": "San Francisco, CA",
+    "employment_type": "Full-time",
+    "salary_range": "$120,000 - $180,000"
+  },
+  "max_results": 20
+}
+```
+
+**Example**:
+```bash
+curl -X POST "http://localhost:8000/api/v1/find-candidates" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_description": {
+      "title": "Full Stack Developer",
+      "company": "StartupXYZ",
+      "description": "Looking for a talented developer with React and Node.js experience",
+      "required_skills": ["JavaScript", "React", "Node.js"],
+      "experience_level": "mid",
+      "location": "New York, NY"
+    },
+    "max_results": 10
+  }'
+```
+
+**Response**:
+```json
+{
+  "job_summary": {
+    "title": "Full Stack Developer",
+    "company": "StartupXYZ",
+    "required_skills": ["JavaScript", "React", "Node.js"],
+    "experience_level": "mid"
+  },
+  "candidates": [
+    {
+      "name": "Sarah Johnson",
+      "headline": "Senior Software Engineer | Open to New Opportunities",
+      "location": "New York, NY",
+      "profile_url": "https://linkedin.com/in/sarah-johnson-123",
+      "current_position": "Senior Developer",
+      "company": "Tech Corp",
+      "skills": ["JavaScript", "React", "Node.js", "Python"],
+      "match_score": 87.5,
+      "matched_skills": ["JavaScript", "React", "Node.js"],
+      "is_open_to_work": true,
+      "years_of_experience": 5
+    }
+  ],
+  "total_found": 12,
+  "search_parameters": {
+    "location": "New York, NY",
+    "max_results": 10,
+    "experience_level": "mid",
+    "skills_searched": ["JavaScript", "React", "Node.js"]
   }
 }
 ```

@@ -38,6 +38,55 @@ class SearchResponse(BaseModel):
     search_parameters: Dict[str, Any]
     timestamp: datetime = datetime.now()
 
+class JobDescription(BaseModel):
+    """Job description input structure"""
+    title: str
+    company: str
+    description: str
+    required_skills: List[str] = []
+    preferred_skills: List[str] = []
+    experience_level: str = "mid"  # entry, mid, senior, executive
+    location: str = "United States"
+    employment_type: str = "Full-time"
+    salary_range: Optional[str] = None
+
+class CandidateProfile(BaseModel):
+    """LinkedIn candidate profile structure"""
+    name: str
+    headline: str
+    location: str
+    profile_url: str
+    current_position: Optional[str] = None
+    company: Optional[str] = None
+    skills: List[str] = []
+    experience_level: str = "mid"
+    education: List[str] = []
+    is_open_to_work: bool = False
+    summary: Optional[str] = None
+    match_score: float = 0.0  # 0-100 relevance score
+    matched_skills: List[str] = []
+    years_of_experience: Optional[int] = None
+
+class CandidateSearchRequest(BaseModel):
+    """Request structure for candidate search"""
+    job_description: JobDescription
+    max_results: Optional[int] = 20
+    location_radius: Optional[int] = 50  # miles
+
+class CandidateSearchResponse(BaseModel):
+    """API response structure for candidate search"""
+    job_summary: JobDescription
+    candidates: List[CandidateProfile]
+    total_found: int
+    search_parameters: Dict[str, Any]
+    timestamp: datetime = datetime.now()
+
+class SimpleCandidateSearchRequest(BaseModel):
+    """Simplified request structure for candidate search with raw job description"""
+    job_description_text: str
+    company: Optional[str] = None
+    max_results: Optional[int] = 20
+
 class ErrorResponse(BaseModel):
     """Error response structure"""
     error: str

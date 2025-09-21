@@ -88,3 +88,53 @@
 2025-09-15 22:31:07 | INFO     | main:search_jobs:57 - Searching LinkedIn jobs for skills: ['go', 'sql', 'python', 'node.js', 'postgresql']
 2025-09-15 22:31:11 | INFO     | services.job_matcher:rank_jobs:37 - Ranking 20 jobs against resume
 2025-09-15 22:31:12 | INFO     | services.job_matcher:rank_jobs:48 - Top job match: Software Engineer, 2025 Recent Graduate at Duolingo (Score: 32.72)
+2025-09-17 10:04:19 | INFO     | api.index:find_candidates:100 - Searching candidates for job: Senior Python Developer at TechCorp Inc
+2025-09-17 10:04:19 | INFO     | api.index:find_candidates:111 - Searching candidates with skills: ['Python', 'Django', 'FastAPI', 'AWS', 'PostgreSQL']
+2025-09-17 10:14:31 | INFO     | api.index:find_candidates:100 - Searching candidates for job: Full Stack Developer at StartupXYZ
+2025-09-17 10:14:31 | INFO     | api.index:find_candidates:111 - Searching candidates with skills: ['JavaScript', 'React', 'Node.js', 'Python', 'AWS']
+2025-09-17 10:14:49 | INFO     | api.index:find_candidates:100 - Searching candidates for job: Senior Data Scientist at DataCorp
+2025-09-17 10:14:49 | INFO     | api.index:find_candidates:111 - Searching candidates with skills: ['Python', 'Machine Learning', 'TensorFlow', 'Statistics', 'AWS']
+2025-09-17 10:15:10 | INFO     | api.index:find_candidates:100 - Searching candidates for job: DevOps Engineer at CloudTech Solutions
+2025-09-17 10:15:10 | INFO     | api.index:find_candidates:111 - Searching candidates with skills: ['AWS', 'Docker', 'Kubernetes', 'Jenkins', 'DevOps']
+2025-09-17 12:46:51 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (741 chars) for company: TechCorp Inc
+2025-09-17 12:46:51 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Senior Python Developer - TechCorp Inc | Skills: ['Python', 'Go', 'Django']
+2025-09-17 12:47:08 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (838 chars) for company: StartupXYZ
+2025-09-17 12:47:08 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Full Stack Developer Opportunity | Skills: ['JavaScript', 'Java', 'Go']
+2025-09-17 12:47:26 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (918 chars) for company: DataCorp AI
+2025-09-17 12:47:26 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Data Scientist - AI/ML Focus | Skills: ['Data Science']
+2025-09-17 12:47:43 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (103 chars) for company: Unknown
+2025-09-17 12:47:43 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Looking for a Python developer with Django experience for our startup in NYC. Must know AWS and Docker. | Skills: ['Go', 'Django', 'AWS']
+2025-09-17 14:52:18 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (741 chars) for company: TechCorp Inc
+2025-09-17 14:52:18 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Senior Python Developer - TechCorp Inc | Skills: ['Python', 'Go', 'Django']
+2025-09-17 14:52:39 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (838 chars) for company: StartupXYZ
+2025-09-17 14:52:39 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Full Stack Developer Opportunity | Skills: ['JavaScript', 'Java', 'Go']
+2025-09-17 14:52:55 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (918 chars) for company: DataCorp AI
+2025-09-17 14:52:55 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Data Scientist - AI/ML Focus | Skills: ['Data Science']
+2025-09-17 15:15:42 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (228 chars) for company: TechCorp Inc
+2025-09-17 15:15:45 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Senior Python Developer | Skills: ['Python', 'Django', 'FastAPI']
+2025-09-17 15:29:14 | INFO     | api.index:find_candidates_simple:159 - Parsing job description text (228 chars) for company: TechCorp Inc
+2025-09-17 15:29:16 | INFO     | api.index:find_candidates_simple:164 - Parsed job: Senior Python Developer | Skills: ['Python', 'Django', 'FastAPI']
+2025-09-17 15:32:58 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (136 chars) for company: TechCorp Inc
+2025-09-17 15:33:00 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Senior Python Developer | Skills: ['Python', 'Django', 'AWS']
+2025-09-17 15:35:36 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (136 chars) for company: TechCorp Inc
+2025-09-17 15:35:38 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Senior Python Developer | Skills: ['Python', 'Django', 'AWS']
+2025-09-17 15:38:58 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (53 chars) for company: Unknown
+2025-09-17 15:39:00 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Senior Python Developer with Django experience | Skills: ['Python', 'Django']
+2025-09-17 15:39:00 | INFO     | api.index:find_candidates_simple:170 - Searching for candidates with skills: ['Python', 'Django']
+2025-09-17 15:39:16 | INFO     | api.index:find_candidates_simple:178 - Found 0 raw candidates
+2025-09-17 15:40:04 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (23 chars) for company: Unknown
+2025-09-17 15:40:13 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Python Developer | Skills: ['Python']
+2025-09-17 15:40:13 | INFO     | api.index:find_candidates_simple:170 - Searching for candidates with skills: ['Python']
+2025-09-17 15:40:23 | INFO     | api.index:find_candidates_simple:178 - Found 0 raw candidates
+2025-09-17 15:50:34 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (23 chars) for company: Unknown
+2025-09-17 15:50:36 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Python Developer | Skills: ['Python programming']
+2025-09-17 15:50:36 | INFO     | api.index:find_candidates_simple:170 - Searching for candidates with skills: ['Python programming']
+2025-09-17 15:50:48 | INFO     | api.index:find_candidates_simple:178 - Found 0 raw candidates
+2025-09-17 15:51:58 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (103 chars) for company: TechCorp
+2025-09-17 15:52:03 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Senior Python Developer | Skills: ['Python', 'Django', 'AWS']
+2025-09-17 15:52:03 | INFO     | api.index:find_candidates_simple:170 - Searching for candidates with skills: ['Python', 'Django', 'AWS']
+2025-09-17 15:52:03 | INFO     | api.index:find_candidates_simple:178 - Found 5 raw candidates
+2025-09-17 15:52:21 | INFO     | api.index:find_candidates_simple:160 - Parsing job description text (228 chars) for company: TechCorp Inc
+2025-09-17 15:52:22 | INFO     | api.index:find_candidates_simple:165 - Parsed job: Senior Python Developer | Skills: ['Python', 'Django', 'FastAPI']
+2025-09-17 15:52:22 | INFO     | api.index:find_candidates_simple:170 - Searching for candidates with skills: ['Python', 'Django', 'FastAPI', 'AWS', 'Docker', 'Kubernetes']
+2025-09-17 15:52:22 | INFO     | api.index:find_candidates_simple:178 - Found 10 raw candidates
