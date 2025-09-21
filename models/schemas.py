@@ -43,3 +43,37 @@ class ErrorResponse(BaseModel):
     error: str
     message: str
     timestamp: datetime = datetime.now()
+
+# New schemas for candidate finder functionality
+class JobDescriptionInput(BaseModel):
+    """Input schema for job description text"""
+    job_description: str
+
+class CandidateProfile(BaseModel):
+    """Candidate profile structure from CrustData API"""
+    name: str
+    location: Optional[str] = None
+    linkedin_profile_url: Optional[str] = None
+    linkedin_profile_urn: Optional[str] = None
+    default_position_title: Optional[str] = None
+    headline: Optional[str] = None
+    summary: Optional[str] = None
+    num_of_connections: Optional[int] = None
+    skills: List[str] = []
+    current_title: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+    employer: List[Dict[str, Any]] = []
+    education_background: List[Dict[str, Any]] = []
+    emails: List[str] = []
+    websites: List[str] = []
+    years_of_experience: Optional[str] = None
+    match_score: float = 0.0
+    match_explanation: Optional[str] = None
+
+class CandidateSearchResponse(BaseModel):
+    """Response structure for candidate search"""
+    candidates: List[CandidateProfile]
+    total_found: int
+    search_filters: Dict[str, Any]
+    extracted_keywords: List[str]
+    timestamp: datetime = datetime.now()

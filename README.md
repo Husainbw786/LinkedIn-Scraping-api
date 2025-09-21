@@ -1,12 +1,25 @@
-# LinkedIn Job Scraper API
+# LinkedIn Job Scraper & Candidate Finder API
 
-A FastAPI-based service that takes resume PDFs as input and finds relevant job opportunities on LinkedIn. The system parses resume content, extracts skills and experience, then scrapes LinkedIn for matching jobs with intelligent ranking.
+A comprehensive FastAPI-based service that provides two main functionalities:
+1. **Job Finder**: Takes resume PDFs as input and finds relevant job opportunities on LinkedIn
+2. **Candidate Finder**: Takes job descriptions as input and finds suitable candidates using CrustData API
+
+The system intelligently parses content, extracts relevant information, and provides ranked results using advanced matching algorithms.
 
 ## Features
 
+### Job Finder
 - **Resume PDF Parsing**: Extract skills, experience, education, and keywords from PDF resumes
 - **LinkedIn Job Scraping**: Multi-strategy scraping with anti-detection measures
 - **Intelligent Job Matching**: ML-based ranking algorithm using TF-IDF similarity
+
+### Candidate Finder (NEW)
+- **Job Description Parsing**: Extract job titles, skills, experience requirements from text
+- **CrustData Integration**: Search for candidates using professional database
+- **Smart Candidate Matching**: Weighted scoring system for candidate ranking
+- **Automatic Keyword Extraction**: AI-powered extraction of relevant search terms
+
+### Common Features
 - **Rate Limiting**: Built-in delays and retry logic to avoid detection
 - **RESTful API**: Clean FastAPI endpoints with automatic documentation
 - **Comprehensive Logging**: Structured logging with rotation and error tracking
@@ -14,18 +27,21 @@ A FastAPI-based service that takes resume PDFs as input and finds relevant job o
 ## Architecture
 
 ```
-├── main.py                 # FastAPI application entry point
+├── main.py                          # FastAPI application entry point
 ├── models/
-│   └── schemas.py         # Pydantic data models
+│   └── schemas.py                  # Pydantic data models
 ├── services/
-│   ├── resume_parser.py   # PDF parsing and text extraction
-│   ├── linkedin_scraper.py # LinkedIn job scraping
-│   └── job_matcher.py     # Job ranking and matching
+│   ├── resume_parser.py            # PDF parsing and text extraction
+│   ├── linkedin_scraper.py         # LinkedIn job scraping
+│   ├── job_matcher.py              # Job ranking and matching
+│   ├── crustdata_api.py            # CrustData API integration (NEW)
+│   ├── job_description_parser.py   # Job description parsing (NEW)
+│   └── candidate_matcher.py        # Candidate ranking algorithm (NEW)
 ├── utils/
-│   ├── logger_config.py   # Logging configuration
-│   └── exceptions.py      # Custom exceptions
+│   ├── logger_config.py            # Logging configuration
+│   └── exceptions.py               # Custom exceptions
 └── tests/
-    └── test_api.py        # API testing suite
+    └── test_api.py                 # API testing suite
 ```
 
 ## Installation
@@ -113,6 +129,51 @@ curl -X POST "http://localhost:8000/api/v1/search-jobs" \
 }
 ```
 
+#### POST `/api/v1/find-candidates` (NEW)
+
+Find candidates based on job description using CrustData API.
+
+**Parameters**:
+- `job_description`: Job description text (JSON body)
+
+**Example**:
+```bash
+curl -X POST "http://localhost:8000/api/v1/find-candidates" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_description": "We are looking for a Senior Backend Engineer with 5+ years of experience in Python, Django, AWS, and microservices. The ideal candidate should have experience with PostgreSQL, Redis, and Docker. Location: San Francisco, CA, United States."
+  }'
+```
+
+**Response**:
+```json
+{
+  "candidates": [
+    {
+      "name": "John Smith",
+      "location": "San Francisco, CA, United States",
+      "linkedin_profile_url": "https://www.linkedin.com/in/john-smith-engineer",
+      "current_title": "Senior Backend Engineer",
+      "headline": "Senior Backend Engineer | Python & AWS Expert",
+      "summary": "Experienced Software Engineer with expertise in scalable systems...",
+      "skills": ["Python", "Django", "AWS", "PostgreSQL", "Docker", "Redis"],
+      "years_of_experience": "6 to 10 years",
+      "match_score": 92.5,
+      "match_explanation": "Skills match: 6/6 required skills; Title match: 'Senior Backend Engineer' vs required titles; Experience match: 6 to 10 years vs required levels; Location match: San Francisco, CA"
+    }
+  ],
+  "total_found": 15,
+  "search_filters": {
+    "job_titles": ["Senior Backend Engineer", "Backend Engineer"],
+    "functions": ["Engineering", "Information Technology"],
+    "skills": ["Python", "Django", "AWS", "PostgreSQL", "Redis", "Docker"],
+    "locations": ["San Francisco, CA, United States"],
+    "experience_levels": ["6 to 10 years", "More than 10 years"]
+  },
+  "extracted_keywords": ["python", "django", "aws", "microservices", "postgresql", "redis", "docker"]
+}
+```
+
 #### GET `/api/v1/health`
 
 Health check endpoint.
@@ -125,6 +186,9 @@ Health check endpoint.
 # LinkedIn Scraping
 LINKEDIN_EMAIL=your_email@example.com
 LINKEDIN_PASSWORD=your_password
+
+# CrustData API (NEW)
+CRUSTDATA_API_TOKEN=your_crustdata_api_token_here
 
 # API Settings
 API_HOST=0.0.0.0
@@ -166,6 +230,22 @@ Weighted scoring system:
 - **Description Similarity (20%)**: TF-IDF cosine similarity
 - **Experience Level (10%)**: Seniority level matching
 - **Keyword Match (5%)**: General keyword overlap
+
+### 4. Candidate Matching Algorithm (NEW)
+Advanced weighted scoring system for candidate ranking:
+- **Skills Match (40%)**: Required vs preferred skills matching
+- **Title Match (25%)**: Job title alignment with candidate's current role
+- **Experience Level (15%)**: Years of experience matching
+- **Summary Similarity (10%)**: TF-IDF based content similarity
+- **Location Match (10%)**: Geographic preference alignment
+
+### 5. Job Description Parsing (NEW)
+Intelligent extraction of search criteria:
+- **Job Titles**: Pattern recognition for role identification
+- **Technical Skills**: Comprehensive skill database matching
+- **Experience Requirements**: Natural language processing for experience levels
+- **Location Extraction**: Geographic information parsing
+- **Keyword Extraction**: TF-IDF based important term identification
 
 ## Testing
 
