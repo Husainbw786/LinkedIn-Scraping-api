@@ -2,6 +2,7 @@ import requests
 import os
 from typing import List, Dict, Any, Optional
 from utils.logger_config import setup_logging
+from .openai_job_parser import OpenAIJobParser
 
 logger = setup_logging()
 
@@ -17,6 +18,175 @@ class CrustDataAPI:
             "Authorization": f"Token {self.api_token}",
             "Content-Type": "application/json"
         }
+        self.openai_parser = OpenAIJobParser()
+    
+    async def search_candidates_from_job_description(self, job_description: str, page: int = 1) -> Dict[str, Any]:
+        """
+        Search for candidates using OpenAI to parse job description and generate optimal filters
+        
+        Args:
+            job_description: Raw job description text
+            page: Page number for pagination
+            
+        Returns:
+            Dict containing the API response with candidate profiles and parsing info
+        """
+        try:
+            logger.info("Starting intelligent candidate search with OpenAI parsing")
+            
+            # Use OpenAI to parse job description and generate optimal filters
+            parsed_filters = self.openai_parser.parse_job_description(job_description)
+            
+            logger.info(f"OpenAI generated filters: {parsed_filters}")
+            
+            # Build CrustData API filters from OpenAI output
+            filters = []
+            
+            if parsed_filters.get("job_titles"):
+                filters.append({
+                    "filter_type": "CURRENT_TITLE",
+                    "type": "in",
+                    "value": parsed_filters["job_titles"]
+                })
+            
+            if parsed_filters.get("functions"):
+                filters.append({
+                    "filter_type": "FUNCTION",
+                    "type": "in",
+                    "value": parsed_filters["functions"]
+                })
+            
+            if parsed_filters.get("keywords"):
+                # Join keywords for search
+                keyword_string = " ".join(parsed_filters["keywords"])
+                filters.append({
+                    "filter_type": "KEYWORD",
+                    "type": "in",
+                    "value": [keyword_string]
+                })
+            
+            if parsed_filters.get("locations"):
+                filters.append({
+                    "filter_type": "REGION",
+                    "type": "in",
+                    "value": parsed_filters["locations"]
+                })
+            
+            if parsed_filters.get("experience_levels"):
+                filters.append({
+                    "filter_type": "YEARS_OF_EXPERIENCE",
+                    "type": "in",
+                    "value": parsed_filters["experience_levels"]
+                })
+            
+            # Make the API call
+            payload = {
+                "filters": filters,
+                "page": page
+            }
+            
+            logger.info(f"Calling CrustData API with filters: {filters}")
+            
+            response = requests.post(
+                self.base_url,
+                headers=self.headers,
+                json=payload,
+                timeout=60
+            )
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            profiles_found = len(data.get('profiles', []))
+            logger.info(f"Found {profiles_found} candidates")
+            
+            # If no results and we have multiple filters, try simplified search
+            if profiles_found == 0 and len(filters) > 2:
+                logger.info("No results with full filters, trying simplified search...")
+                return await self._simplified_search(parsed_filters, page)
+            
+            # Add parsing info to response
+            data['parsing_info'] = {
+                'filters_used': parsed_filters,
+                'search_strategy': parsed_filters.get('search_strategy', 'OpenAI optimized search'),
+                'total_filters_applied': len(filters)
+            }
+            
+            return data
+            
+        except requests.exceptions.Timeout as e:
+            logger.error(f"CrustData API timeout: {str(e)}")
+            return {"profiles": [], "message": "API timeout - please try again", "parsing_info": {}}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error calling CrustData API: {str(e)}")
+            return {"profiles": [], "message": f"API error: {str(e)}", "parsing_info": {}}
+        except Exception as e:
+            logger.error(f"Unexpected error in candidate search: {str(e)}")
+            return {"profiles": [], "message": f"Search failed: {str(e)}", "parsing_info": {}}
+    
+    async def _simplified_search(self, parsed_filters: Dict[str, Any], page: int = 1) -> Dict[str, Any]:
+        """
+        Simplified search with only the most important filters
+        """
+        try:
+            logger.info("Performing simplified search")
+            
+            # Use only job titles and top keyword
+            filters = []
+            
+            if parsed_filters.get("job_titles"):
+                filters.append({
+                    "filter_type": "CURRENT_TITLE",
+                    "type": "in",
+                    "value": parsed_filters["job_titles"][:2]  # Only top 2 job titles
+                })
+            
+            if parsed_filters.get("keywords"):
+                # Use only the most important keyword
+                top_keyword = parsed_filters["keywords"][0] if parsed_filters["keywords"] else "Software"
+                filters.append({
+                    "filter_type": "KEYWORD",
+                    "type": "in",
+                    "value": [top_keyword]
+                })
+            
+            payload = {
+                "filters": filters,
+                "page": page
+            }
+            
+            logger.info(f"Simplified search with filters: {filters}")
+            
+            response = requests.post(
+                self.base_url,
+                headers=self.headers,
+                json=payload,
+                timeout=60
+            )
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            profiles_found = len(data.get('profiles', []))
+            logger.info(f"Simplified search found {profiles_found} candidates")
+            
+            # Add parsing info
+            data['parsing_info'] = {
+                'filters_used': parsed_filters,
+                'search_strategy': 'Simplified search - reduced filters for broader results',
+                'total_filters_applied': len(filters),
+                'note': 'Used simplified search due to no results with full filters'
+            }
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"Simplified search failed: {str(e)}")
+            return {
+                "profiles": [], 
+                "message": f"Both full and simplified searches failed: {str(e)}",
+                "parsing_info": {}
+            }
     
     async def search_candidates(
         self,
@@ -42,14 +212,18 @@ class CrustDataAPI:
             Dict containing the API response with candidate profiles
         """
         try:
-            # Build filters for the API request
+            # Build filters for the API request - make it more flexible
             filters = []
             
+            # Start with broader job titles if specific ones don't work
             if job_titles:
+                # Add both specific and broader titles
+                broad_titles = ["Software Engineer", "Backend Engineer", "Python Developer", "Software Developer"]
+                all_titles = list(set(job_titles + broad_titles))
                 filters.append({
                     "filter_type": "CURRENT_TITLE",
                     "type": "in",
-                    "value": job_titles
+                    "value": all_titles
                 })
             
             if functions:
@@ -59,20 +233,37 @@ class CrustDataAPI:
                     "value": functions
                 })
             
+            # Use only the most important keywords to avoid being too restrictive
             if keywords:
-                # Join keywords with spaces for better search
-                keyword_string = " ".join(keywords)
+                # Take only top 3-5 most important keywords
+                important_keywords = keywords[:5]
+                keyword_string = " ".join(important_keywords)
                 filters.append({
                     "filter_type": "KEYWORD",
                     "type": "in",
                     "value": [keyword_string]
                 })
             
+            # Try broader location search
             if locations:
+                # If US is specified, try different formats
+                broad_locations = []
+                for loc in locations:
+                    if "united states" in loc.lower() or "usa" in loc.lower():
+                        broad_locations.extend([
+                            "United States",
+                            "USA", 
+                            "California, United States",
+                            "New York, United States",
+                            "Texas, United States"
+                        ])
+                    else:
+                        broad_locations.append(loc)
+                
                 filters.append({
                     "filter_type": "REGION",
                     "type": "in",
-                    "value": locations
+                    "value": list(set(broad_locations))
                 })
             
             if experience_levels:
@@ -99,7 +290,13 @@ class CrustDataAPI:
             response.raise_for_status()
             
             data = response.json()
-            logger.info(f"Found {len(data.get('profiles', []))} candidates")
+            profiles_found = len(data.get('profiles', []))
+            logger.info(f"Found {profiles_found} candidates")
+            
+            # If no results found, try a simpler search
+            if profiles_found == 0 and len(filters) > 2:
+                logger.info("No candidates found with full filters, trying simplified search...")
+                return await self._fallback_search(job_titles, keywords, page)
             
             return data
             
@@ -114,6 +311,59 @@ class CrustDataAPI:
         except Exception as e:
             logger.error(f"Unexpected error in candidate search: {str(e)}")
             return {"profiles": [], "message": f"Search failed: {str(e)}"}
+    
+    async def _fallback_search(self, job_titles: List[str], keywords: List[str], page: int = 1) -> Dict[str, Any]:
+        """
+        Simplified fallback search with minimal filters
+        """
+        try:
+            logger.info("Performing fallback search with minimal filters")
+            
+            # Use only the most basic filters
+            filters = []
+            
+            # Just use broad job titles
+            if job_titles:
+                broad_titles = ["Software Engineer", "Backend Engineer", "Python Developer", "Software Developer", "Engineer"]
+                filters.append({
+                    "filter_type": "CURRENT_TITLE",
+                    "type": "in",
+                    "value": broad_titles
+                })
+            
+            # Use only Python as keyword if it's in the list
+            if keywords and any('python' in k.lower() for k in keywords):
+                filters.append({
+                    "filter_type": "KEYWORD",
+                    "type": "in",
+                    "value": ["Python"]
+                })
+            
+            payload = {
+                "filters": filters,
+                "page": page
+            }
+            
+            logger.info(f"Fallback search with filters: {filters}")
+            
+            response = requests.post(
+                self.base_url,
+                headers=self.headers,
+                json=payload,
+                timeout=60
+            )
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            profiles_found = len(data.get('profiles', []))
+            logger.info(f"Fallback search found {profiles_found} candidates")
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"Fallback search also failed: {str(e)}")
+            return {"profiles": [], "message": "Both primary and fallback searches failed"}
     
     def format_candidate_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
         """

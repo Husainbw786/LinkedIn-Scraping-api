@@ -55,7 +55,7 @@ class JobDescriptionParser:
             'linux', 'unix', 'bash', 'shell', 'ci/cd', 'agile', 'scrum'
         }
         
-        # Experience level indicators
+        # Experience level indicators - mapped to CrustData API values
         self.experience_indicators = {
             'entry': ['entry level', 'junior', 'graduate', 'fresh', '0-2 years', '1-2 years'],
             'mid': ['mid level', 'intermediate', '2-5 years', '3-5 years', '2-6 years'],
@@ -63,10 +63,17 @@ class JobDescriptionParser:
             'executive': ['principal', 'staff', 'architect', '10+ years', 'director', 'vp']
         }
         
-        # Common functions/departments
+        # CrustData API experience level mapping
+        self.crustdata_experience_mapping = {
+            'entry': ['Less than 1 year', '1 to 2 years'],
+            'mid': ['3 to 5 years'],
+            'senior': ['6 to 10 years'],
+            'executive': ['More than 10 years']
+        }
+        
+        # Common functions/departments - using CrustData API valid values
         self.functions = [
-            'Engineering', 'Information Technology', 'Software Development',
-            'Data Science', 'Product Management', 'DevOps', 'Quality Assurance'
+            'Engineering', 'Information Technology'
         ]
     
     def parse_job_description(self, job_description: str) -> Dict[str, Any]:
@@ -185,14 +192,8 @@ class JobDescriptionParser:
         for level, indicators in self.experience_indicators.items():
             for indicator in indicators:
                 if indicator in text:
-                    if level == 'entry':
-                        experience_levels.append("0 to 2 years")
-                    elif level == 'mid':
-                        experience_levels.append("2 to 6 years")
-                    elif level == 'senior':
-                        experience_levels.append("6 to 10 years")
-                    elif level == 'executive':
-                        experience_levels.append("More than 10 years")
+                    # Use CrustData API compatible values
+                    experience_levels.extend(self.crustdata_experience_mapping[level])
         
         # Look for numeric patterns
         year_patterns = [
@@ -209,10 +210,13 @@ class JobDescriptionParser:
                 else:
                     min_years = int(match)
                 
-                if min_years <= 2:
-                    experience_levels.append("0 to 2 years")
-                elif min_years <= 6:
-                    experience_levels.append("2 to 6 years")
+                # Map to CrustData API values
+                if min_years <= 1:
+                    experience_levels.extend(["Less than 1 year", "1 to 2 years"])
+                elif min_years <= 2:
+                    experience_levels.extend(["1 to 2 years", "3 to 5 years"])
+                elif min_years <= 5:
+                    experience_levels.append("3 to 5 years")
                 elif min_years <= 10:
                     experience_levels.append("6 to 10 years")
                 else:
@@ -220,7 +224,7 @@ class JobDescriptionParser:
         
         # Default to mid-level if nothing found
         if not experience_levels:
-            experience_levels = ["2 to 6 years", "6 to 10 years"]
+            experience_levels = ["3 to 5 years", "6 to 10 years"]
         
         return list(set(experience_levels))
     

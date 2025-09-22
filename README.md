@@ -13,11 +13,12 @@ The system intelligently parses content, extracts relevant information, and prov
 - **LinkedIn Job Scraping**: Multi-strategy scraping with anti-detection measures
 - **Intelligent Job Matching**: ML-based ranking algorithm using TF-IDF similarity
 
-### Candidate Finder (NEW)
-- **Job Description Parsing**: Extract job titles, skills, experience requirements from text
+### Candidate Finder (NEW) - AI-Powered
+- **OpenAI Job Analysis**: Intelligent parsing of job descriptions using GPT-3.5
+- **Smart Filter Generation**: AI determines optimal CrustData API search filters
 - **CrustData Integration**: Search for candidates using professional database
+- **Adaptive Search Strategy**: Automatic fallback to simplified search if needed
 - **Smart Candidate Matching**: Weighted scoring system for candidate ranking
-- **Automatic Keyword Extraction**: AI-powered extraction of relevant search terms
 
 ### Common Features
 - **Rate Limiting**: Built-in delays and retry logic to avoid detection
@@ -35,7 +36,7 @@ The system intelligently parses content, extracts relevant information, and prov
 │   ├── linkedin_scraper.py         # LinkedIn job scraping
 │   ├── job_matcher.py              # Job ranking and matching
 │   ├── crustdata_api.py            # CrustData API integration (NEW)
-│   ├── job_description_parser.py   # Job description parsing (NEW)
+│   ├── openai_job_parser.py        # OpenAI-powered job parsing (NEW)
 │   └── candidate_matcher.py        # Candidate ranking algorithm (NEW)
 ├── utils/
 │   ├── logger_config.py            # Logging configuration
@@ -129,9 +130,15 @@ curl -X POST "http://localhost:8000/api/v1/search-jobs" \
 }
 ```
 
-#### POST `/api/v1/find-candidates` (NEW)
+#### POST `/api/v1/find-candidates` (NEW) - AI-Powered
 
-Find candidates based on job description using CrustData API.
+Find candidates based on job description using OpenAI + CrustData API.
+
+**Features**:
+- Uses OpenAI GPT-3.5 to intelligently parse job descriptions
+- Generates optimal CrustData API search filters automatically
+- No hardcoded parsing rules - AI adapts to any job description
+- Automatic fallback strategies for better results
 
 **Parameters**:
 - `job_description`: Job description text (JSON body)
@@ -141,7 +148,7 @@ Find candidates based on job description using CrustData API.
 curl -X POST "http://localhost:8000/api/v1/find-candidates" \
   -H "Content-Type: application/json" \
   -d '{
-    "job_description": "We are looking for a Senior Backend Engineer with 5+ years of experience in Python, Django, AWS, and microservices. The ideal candidate should have experience with PostgreSQL, Redis, and Docker. Location: San Francisco, CA, United States."
+    "job_description": "BS degree in Computer Science. 3+ years Python developer experience with Django framework. RESTful APIs, Docker, SQL databases, Git, agile methodologies. Fast-paced collaborative environment."
   }'
 ```
 
@@ -164,13 +171,15 @@ curl -X POST "http://localhost:8000/api/v1/find-candidates" \
   ],
   "total_found": 15,
   "search_filters": {
-    "job_titles": ["Senior Backend Engineer", "Backend Engineer"],
+    "job_titles": ["Python Developer", "Software Engineer", "Backend Engineer"],
     "functions": ["Engineering", "Information Technology"],
-    "skills": ["Python", "Django", "AWS", "PostgreSQL", "Redis", "Docker"],
-    "locations": ["San Francisco, CA, United States"],
-    "experience_levels": ["6 to 10 years", "More than 10 years"]
+    "skills": ["Python", "Django", "Docker", "SQL", "Git"],
+    "locations": ["United States"],
+    "experience_levels": ["3 to 5 years"],
+    "ai_strategy": "Focused on Python/Django expertise with mid-level experience",
+    "filters_applied": 5
   },
-  "extracted_keywords": ["python", "django", "aws", "microservices", "postgresql", "redis", "docker"]
+  "extracted_keywords": ["Python", "Django", "Docker", "SQL", "Git"]
 }
 ```
 
@@ -189,6 +198,9 @@ LINKEDIN_PASSWORD=your_password
 
 # CrustData API (NEW)
 CRUSTDATA_API_TOKEN=your_crustdata_api_token_here
+
+# OpenAI API (NEW)
+OPENAI_API_KEY=your_openai_api_key_here
 
 # API Settings
 API_HOST=0.0.0.0

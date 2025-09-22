@@ -13,7 +13,6 @@ from services.resume_parser import ResumeParser
 from services.linkedin_scraper import LinkedInScraper
 from services.job_matcher import JobMatcher
 from services.crustdata_api import CrustDataAPI
-from services.job_description_parser import JobDescriptionParser
 from services.candidate_matcher import CandidateMatcher
 from models.schemas import JobResult, ResumeData, SearchResponse, JobDescriptionInput, CandidateSearchResponse, CandidateProfile
 
@@ -38,7 +37,6 @@ resume_parser = ResumeParser()
 linkedin_scraper = LinkedInScraper()
 job_matcher = JobMatcher()
 crustdata_api = CrustDataAPI()
-job_description_parser = JobDescriptionParser()
 candidate_matcher = CandidateMatcher()
 
 @app.post("/api/v1/search-jobs", response_model=SearchResponse)
@@ -89,40 +87,56 @@ async def search_jobs(
 @app.post("/api/v1/find-candidates", response_model=CandidateSearchResponse)
 async def find_candidates(job_input: JobDescriptionInput):
     """
-    Find candidates based on job description using CrustData API
+    Find candidates based on job description using OpenAI + CrustData API
     
-    Takes a job description text and returns ranked candidates that match the requirements.
-    The API automatically extracts job titles, skills, experience levels, and other relevant
-    filters from the job description to search for suitable candidates.
+    This endpoint uses OpenAI to intelligently parse the job description and generate
+    optimal search filters for the CrustData API. No hardcoded parsing - the AI
+    determines the best search strategy based on the specific job requirements.
+    
+    Features:
+    - OpenAI-powered job description analysis
+    - Intelligent filter generation for CrustData API
+    - Automatic fallback to simplified search if needed
+    - Candidate ranking based on job requirements
     """
     try:
-        logger.info("Processing candidate search request")
+        logger.info("🤖 Starting AI-powered candidate search")
         
-        # Parse job description to extract search criteria
-        job_requirements = job_description_parser.parse_job_description(job_input.job_description)
-        
-        logger.info(f"Extracted job requirements: {job_requirements}")
-        
-        # Search for candidates using CrustData API
-        search_results = await crustdata_api.search_candidates(
-            job_titles=job_requirements.get('job_titles', []),
-            functions=job_requirements.get('functions', []),
-            keywords=job_requirements.get('skills', []),
-            locations=job_requirements.get('location', []),
-            experience_levels=job_requirements.get('experience_level', [])
+        # Use OpenAI + CrustData API for intelligent candidate search
+        search_results = await crustdata_api.search_candidates_from_job_description(
+            job_input.job_description
         )
+        
+        # Extract parsing info and profiles
+        parsing_info = search_results.get('parsing_info', {})
+        profiles = search_results.get('profiles', [])
+        
+        logger.info(f"🎯 OpenAI Strategy: {parsing_info.get('search_strategy', 'Unknown')}")
+        logger.info(f"📊 Found {len(profiles)} candidates from CrustData API")
         
         # Format candidate profiles
         candidates = []
-        for profile_data in search_results.get('profiles', []):
+        for profile_data in profiles:
             formatted_profile = crustdata_api.format_candidate_profile(profile_data)
             if formatted_profile:  # Only add if formatting was successful
                 candidates.append(formatted_profile)
         
-        logger.info(f"Found {len(candidates)} candidates from CrustData API")
+        # Create job requirements from OpenAI parsing for candidate ranking
+        filters_used = parsing_info.get('filters_used', {})
+        job_requirements = {
+            'job_titles': filters_used.get('job_titles', []),
+            'skills': filters_used.get('keywords', []),
+            'experience_level': filters_used.get('experience_levels', []),
+            'location': filters_used.get('locations', []),
+            'all_extracted_keywords': filters_used.get('keywords', [])
+        }
         
         # Rank candidates based on job requirements
-        ranked_candidates = candidate_matcher.rank_candidates(candidates, job_requirements)
+        if candidates:
+            logger.info("🏆 Ranking candidates based on job requirements")
+            ranked_candidates = candidate_matcher.rank_candidates(candidates, job_requirements)
+        else:
+            ranked_candidates = []
         
         # Convert to Pydantic models
         candidate_profiles = []
@@ -138,18 +152,20 @@ async def find_candidates(job_input: JobDescriptionInput):
             candidates=candidate_profiles,
             total_found=len(candidate_profiles),
             search_filters={
-                "job_titles": job_requirements.get('job_titles', []),
-                "functions": job_requirements.get('functions', []),
-                "skills": job_requirements.get('skills', []),
-                "locations": job_requirements.get('location', []),
-                "experience_levels": job_requirements.get('experience_level', [])
+                "job_titles": filters_used.get('job_titles', []),
+                "functions": filters_used.get('functions', []),
+                "skills": filters_used.get('keywords', []),
+                "locations": filters_used.get('locations', []),
+                "experience_levels": filters_used.get('experience_levels', []),
+                "ai_strategy": parsing_info.get('search_strategy', 'OpenAI optimized search'),
+                "filters_applied": parsing_info.get('total_filters_applied', 0)
             },
-            extracted_keywords=job_requirements.get('all_extracted_keywords', [])
+            extracted_keywords=filters_used.get('keywords', [])
         )
         
     except Exception as e:
-        logger.error(f"Error processing candidate search: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Candidate search error: {str(e)}")
+        logger.error(f"Error processing AI-powered candidate search: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI candidate search error: {str(e)}")
 
 @app.get("/api/v1/health")
 async def health_check():
