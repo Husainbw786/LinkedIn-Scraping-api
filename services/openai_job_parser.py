@@ -10,9 +10,21 @@ class OpenAIJobParser:
     """Use OpenAI to intelligently parse job descriptions and generate CrustData API filters"""
     
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        if not os.getenv("OPENAI_API_KEY"):
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required")
+        
+        try:
+            # Initialize OpenAI client with explicit configuration
+            self.client = OpenAI(
+                api_key=api_key,
+                timeout=30.0,
+                max_retries=2
+            )
+            logger.info("OpenAI client initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+            raise ValueError(f"OpenAI client initialization failed: {str(e)}")
     
     def parse_job_description(self, job_description: str) -> Dict[str, Any]:
         """
@@ -31,7 +43,7 @@ class OpenAIJobParser:
             prompt = self._create_parsing_prompt(job_description)
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4.1",
                 messages=[
                     {
                         "role": "system",

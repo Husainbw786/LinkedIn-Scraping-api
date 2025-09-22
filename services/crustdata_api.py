@@ -18,7 +18,17 @@ class CrustDataAPI:
             "Authorization": f"Token {self.api_token}",
             "Content-Type": "application/json"
         }
-        self.openai_parser = OpenAIJobParser()
+        
+        # Initialize OpenAI parser with error handling
+        try:
+            self.openai_parser = OpenAIJobParser()
+            self.openai_available = True
+            logger.info("OpenAI parser initialized successfully")
+        except Exception as e:
+            logger.warning(f"OpenAI parser initialization failed: {str(e)}")
+            logger.warning("Falling back to basic parsing mode")
+            self.openai_parser = None
+            self.openai_available = False
     
     async def search_candidates_from_job_description(self, job_description: str, page: int = 1) -> Dict[str, Any]:
         """
@@ -32,10 +42,14 @@ class CrustDataAPI:
             Dict containing the API response with candidate profiles and parsing info
         """
         try:
-            logger.info("Starting intelligent candidate search with OpenAI parsing")
-            
-            # Use OpenAI to parse job description and generate optimal filters
-            parsed_filters = self.openai_parser.parse_job_description(job_description)
+            if self.openai_available:
+                logger.info("Starting intelligent candidate search with OpenAI parsing")
+                # Use OpenAI to parse job description and generate optimal filters
+                parsed_filters = self.openai_parser.parse_job_description(job_description)
+            else:
+                logger.info("Using fallback parsing (OpenAI not available)")
+                # Use basic fallback parsing
+                parsed_filters = self._basic_job_parsing(job_description)
             
             logger.info(f"OpenAI generated filters: {parsed_filters}")
             
@@ -187,6 +201,46 @@ class CrustDataAPI:
                 "message": f"Both full and simplified searches failed: {str(e)}",
                 "parsing_info": {}
             }
+    
+    def _basic_job_parsing(self, job_description: str) -> Dict[str, Any]:
+        """
+        Basic fallback job parsing when OpenAI is not available
+        """
+        text = job_description.lower()
+        
+        # Basic keyword extraction
+        keywords = []
+        tech_skills = ['python', 'django', 'fastapi', 'aws', 'docker', 'kubernetes', 'postgresql', 'redis', 'git', 'rest', 'api', 'sql', 'javascript', 'react', 'node.js']
+        for skill in tech_skills:
+            if skill in text:
+                keywords.append(skill.title())
+        
+        # Basic experience level detection
+        experience_level = "3 to 5 years"  # Default
+        if any(word in text for word in ['junior', 'entry', 'graduate', '0-2', '1-2']):
+            experience_level = "1 to 2 years"
+        elif any(word in text for word in ['senior', 'lead', '5+', '6+', '7+']):
+            experience_level = "6 to 10 years"
+        elif any(word in text for word in ['principal', 'staff', '10+']):
+            experience_level = "More than 10 years"
+        
+        # Basic job titles
+        job_titles = ["Software Engineer", "Python Developer"]
+        if 'backend' in text:
+            job_titles.append("Backend Engineer")
+        if 'frontend' in text:
+            job_titles.append("Frontend Engineer")
+        if 'fullstack' in text or 'full stack' in text:
+            job_titles.append("Full Stack Developer")
+        
+        return {
+            "job_titles": job_titles[:3],  # Limit to 3
+            "functions": ["Engineering", "Information Technology"],
+            "keywords": keywords[:5],  # Limit to 5
+            "locations": ["United States"],
+            "experience_levels": [experience_level],
+            "search_strategy": "Basic fallback parsing - OpenAI not available"
+        }
     
     async def search_candidates(
         self,
