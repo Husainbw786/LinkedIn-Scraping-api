@@ -56,9 +56,8 @@ async def search_jobs(
     try:
         logger.info(f"Processing resume: {file.filename}")
         
-        # Read and parse resume
-        file_content = await file.read()
-        resume_data = resume_parser.parse_resume(file_content, file.filename)
+        # Parse resume directly from UploadFile
+        resume_data = await resume_parser.parse_pdf(file)
         
         if not resume_data.skills:
             raise HTTPException(status_code=400, detail="Could not extract skills from resume")
@@ -71,7 +70,7 @@ async def search_jobs(
         )
         
         # Match and rank jobs
-        matched_jobs = job_matcher.rank_jobs(jobs, resume_data)
+        matched_jobs = job_matcher.rank_jobs(resume_data, jobs)
         
         logger.info(f"Found {len(matched_jobs)} relevant jobs")
         
