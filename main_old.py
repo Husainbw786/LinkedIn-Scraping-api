@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
+from typing import Optional, List
 import os
 from dotenv import load_dotenv
 from utils.logger_config import setup_logging
@@ -51,26 +51,25 @@ async def search_jobs(
     Upload resume PDF and get relevant LinkedIn job matches
     """
     try:
+        # Validate file type
+        if not file.filename.endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Only PDF files are supported")
+        
+        # Parse resume
         logger.info(f"Processing resume: {file.filename}")
+        resume_data = await resume_parser.parse_pdf(file)
         
-        # Read and parse resume
-        file_content = await file.read()
-        resume_data = resume_parser.parse_resume(file_content, file.filename)
-        
-        if not resume_data.skills:
-            raise HTTPException(status_code=400, detail="Could not extract skills from resume")
-        
-        # Search for jobs
-        jobs = await linkedin_scraper.search_jobs(
-            skills=resume_data.skills[:5],  # Use top 5 skills
+        # Search LinkedIn jobs
+        logger.info(f"Searching LinkedIn jobs for skills: {resume_data.skills[:5]}")
+        raw_jobs = await linkedin_scraper.search_jobs(
+            skills=resume_data.skills,
+            experience_level=resume_data.experience_level,
             location=location,
             max_results=max_results
         )
         
         # Match and rank jobs
-        matched_jobs = job_matcher.rank_jobs(jobs, resume_data)
-        
-        logger.info(f"Found {len(matched_jobs)} relevant jobs")
+        matched_jobs = job_matcher.rank_jobs(resume_data, raw_jobs)
         
         return SearchResponse(
             resume_summary=resume_data,
@@ -101,7 +100,6 @@ async def find_candidates(job_input: JobDescriptionInput):
     - Intelligent filter generation for CrustData API
     - Automatic fallback to simplified search if needed
     - Candidate ranking based on job requirements
-    - **Now limited to 10 results instead of 20**
     """
     try:
         logger.info("🤖 Starting AI-powered candidate search")
@@ -116,7 +114,7 @@ async def find_candidates(job_input: JobDescriptionInput):
         profiles = search_results.get('profiles', [])
         
         logger.info(f"🎯 OpenAI Strategy: {parsing_info.get('search_strategy', 'Unknown')}")
-        logger.info(f"📊 Found {len(profiles)} candidates from CrustData API (limited to 10)")
+        logger.info(f"📊 Found {len(profiles)} candidates from CrustData API")
         
         # Format candidate profiles
         candidates = []
@@ -125,21 +123,36 @@ async def find_candidates(job_input: JobDescriptionInput):
             if formatted_profile:  # Only add if formatting was successful
                 candidates.append(formatted_profile)
         
-        # Rank candidates using our matching algorithm
+        # Create job requirements from OpenAI parsing for candidate ranking
+        filters_used = parsing_info.get('filters_used', {})
+        job_requirements = {
+            'job_titles': filters_used.get('job_titles', []),
+            'skills': filters_used.get('keywords', []),
+            'experience_level': filters_used.get('experience_levels', []),
+            'location': filters_used.get('locations', []),
+            'all_extracted_keywords': filters_used.get('keywords', [])
+        }
+        
+        # Rank candidates based on job requirements
         if candidates:
-            ranked_candidates = candidate_matcher.rank_candidates(
-                candidates, 
-                job_input.job_description
-            )
+            logger.info("🏆 Ranking candidates based on job requirements")
+            ranked_candidates = candidate_matcher.rank_candidates(candidates, job_requirements)
         else:
             ranked_candidates = []
         
-        # Get filters used for transparency
-        filters_used = parsing_info.get('filters_used', {})
+        # Convert to Pydantic models
+        candidate_profiles = []
+        for candidate in ranked_candidates:
+            try:
+                profile = CandidateProfile(**candidate)
+                candidate_profiles.append(profile)
+            except Exception as e:
+                logger.warning(f"Error creating candidate profile: {str(e)}")
+                continue
         
         return CandidateSearchResponse(
-            candidates=ranked_candidates,
-            total_found=len(ranked_candidates),
+            candidates=candidate_profiles,
+            total_found=len(candidate_profiles),
             search_filters={
                 "job_titles": filters_used.get('job_titles', []),
                 "functions": filters_used.get('functions', []),
@@ -147,8 +160,7 @@ async def find_candidates(job_input: JobDescriptionInput):
                 "locations": filters_used.get('locations', []),
                 "experience_levels": filters_used.get('experience_levels', []),
                 "ai_strategy": parsing_info.get('search_strategy', 'OpenAI optimized search'),
-                "filters_applied": parsing_info.get('total_filters_applied', 0),
-                "result_limit": 10  # New field to show the limit
+                "filters_applied": parsing_info.get('total_filters_applied', 0)
             },
             extracted_keywords=filters_used.get('keywords', [])
         )
@@ -157,15 +169,30 @@ async def find_candidates(job_input: JobDescriptionInput):
         logger.error(f"Error processing AI-powered candidate search: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI candidate search error: {str(e)}")
 
+        logger.info(f"📄 Processing uploaded file: {file.filename} ({len(file_content)} bytes)")
+        
+        # Process the resume
+        result = await resume_manager.upload_resume_from_file(
+            file_content,
+            file.filename,
+            google_drive_url
+        )
+        
+        return FileUploadResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in file upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File upload error: {str(e)}")
+
 @app.get("/api/v1/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "LinkedIn Job Scraper & CrustData Candidate Finder API"}
-
-@app.get("/")
+    return {"status": "healthy", "service": "LinkedIn Job Scraper & Candidate Finder API"}
 async def root():
     """Root endpoint"""
-    return {"message": "LinkedIn Job Scraper & CrustData Candidate Finder API", "docs": "/docs"}
+    return {"message": "LinkedIn Job Scraper & Candidate Finder API", "docs": "/docs"}
 
 if __name__ == "__main__":
     import uvicorn
