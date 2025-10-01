@@ -1,7 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional, List
 import os
 from dotenv import load_dotenv
 from utils.logger_config import setup_logging
@@ -14,14 +13,20 @@ from services.linkedin_scraper import LinkedInScraper
 from services.job_matcher import JobMatcher
 from services.crustdata_api import CrustDataAPI
 from services.candidate_matcher import CandidateMatcher
-from models.schemas import JobResult, ResumeData, SearchResponse, JobDescriptionInput, CandidateSearchResponse, CandidateProfile
+from services.resume_manager import ResumeManager
+from models.schemas import (
+    JobResult, ResumeData, SearchResponse, JobDescriptionInput,
+    CandidateSearchResponse, CandidateProfile, ResumeCandidate,
+    ResumeCandidateSearchResponse, ResumeIngestionResponse, ResumeStatsResponse,
+    SingleResumeUploadRequest, SingleResumeUploadResponse, FileUploadResponse
+)
 
 load_dotenv()
 
 app = FastAPI(
-    title="LinkedIn Job Scraper & Candidate Finder API",
-    description="API that finds relevant LinkedIn jobs from resumes and finds candidates from job descriptions using CrustData",
-    version="1.0.0"
+    title="AI-Powered Resume Matching & Candidate Finder API",
+    description="Comprehensive API for resume matching and candidate discovery using AI embeddings, vector search, and multiple data sources including Google Drive and CrustData",
+    version="2.0.0"
 )
 
 app.add_middleware(
@@ -38,6 +43,7 @@ linkedin_scraper = LinkedInScraper()
 job_matcher = JobMatcher()
 crustdata_api = CrustDataAPI()
 candidate_matcher = CandidateMatcher()
+resume_manager = ResumeManager()
 
 @app.post("/api/v1/search-jobs", response_model=SearchResponse)
 async def search_jobs(
@@ -167,12 +173,186 @@ async def find_candidates(job_input: JobDescriptionInput):
         logger.error(f"Error processing AI-powered candidate search: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI candidate search error: {str(e)}")
 
+@app.post("/api/v1/ingest-resumes", response_model=ResumeIngestionResponse)
+async def ingest_resumes(background_tasks: BackgroundTasks):
+    """
+    Ingest all resumes from Google Drive folder into Pinecone vector database
+    
+    This endpoint processes all PDF resumes in the configured Google Drive folder:
+    - Downloads PDFs from Google Drive
+    - Extracts and parses resume content using OpenAI
+    - Generates embeddings for semantic search
+    - Stores in Pinecone with metadata including Google Drive URLs
+    
+    The process runs in the background for large folders.
+    """
+    try:
+        logger.info("🚀 Starting resume ingestion process")
+        
+        # Run ingestion process
+        result = await resume_manager.ingest_all_resumes()
+        
+        return ResumeIngestionResponse(**result)
+        
+    except Exception as e:
+        logger.error(f"Error in resume ingestion: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Resume ingestion error: {str(e)}")
+
+@app.post("/api/v1/match-resumes", response_model=ResumeCandidateSearchResponse)
+async def match_resumes(job_input: JobDescriptionInput, top_k: Optional[int] = 10):
+    """
+    Find best matching candidates from resume database based on job description
+    
+    This endpoint uses semantic search to find the most relevant candidates:
+    - Generates embedding for the job description
+    - Performs vector similarity search in Pinecone
+    - Returns ranked candidates with match scores and Google Drive links
+    
+    Features:
+    - Semantic matching (finds relevant candidates even with different terminology)
+    - Ranked results with match scores and explanations
+    - Direct links to resume PDFs on Google Drive
+    - Structured candidate information (skills, experience, etc.)
+    """
+    try:
+        logger.info("🔍 Starting resume matching process")
+        
+        # Find matching candidates
+        result = await resume_manager.find_matching_candidates(
+            job_input.job_description, 
+            top_k
+        )
+        
+        return ResumeCandidateSearchResponse(**result)
+        
+    except Exception as e:
+        logger.error(f"Error in resume matching: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Resume matching error: {str(e)}")
+
+@app.get("/api/v1/resume-stats", response_model=ResumeStatsResponse)
+async def get_resume_stats():
+    """
+    Get statistics about the resume database
+    
+    Returns information about:
+    - Total number of resumes stored
+    - Database health status
+    - Index statistics
+    """
+    try:
+        stats = await resume_manager.get_resume_stats()
+        return ResumeStatsResponse(**stats)
+        
+    except Exception as e:
+        logger.error(f"Error getting resume stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
+
+@app.delete("/api/v1/clear-resumes")
+async def clear_all_resumes():
+    """
+    Clear all resumes from the database (use with caution!)
+    
+    This endpoint will delete all resume data from Pinecone.
+    Use this for testing or when you want to start fresh.
+    """
+    try:
+        logger.warning(" Clearing all resumes from database")
+        result = await resume_manager.delete_all_resumes()
+        return result
+    except Exception as e:
+        logger.error(f"Error clearing resumes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Clear error: {str(e)}")
+
+@app.post("/api/v1/upload-single-resume", response_model=SingleResumeUploadResponse)
+async def upload_single_resume(request: SingleResumeUploadRequest):
+    """
+    Upload a single resume from Google Drive URL to Pinecone
+    
+    This endpoint allows you to upload individual resumes by providing:
+    - Google Drive shareable URL (required)
+    - Optional file name (will be extracted from URL if not provided)
+    
+    Supported formats: PDF, DOCX, DOC
+    
+    Example URLs:
+    - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    - https://drive.google.com/open?id=FILE_ID
+    - https://docs.google.com/document/d/FILE_ID/edit
+    """
+    try:
+        logger.info(f" Single resume upload request: {request.google_drive_url}")
+        result = await resume_manager.upload_single_resume_by_url(
+            request.google_drive_url,
+            request.file_name
+        )
+        return SingleResumeUploadResponse(**result)
+    except Exception as e:
+        logger.error(f"Error in single resume upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Upload error: {str(e)}")
+
+@app.post("/api/v1/upload-resume-file", response_model=FileUploadResponse)
+async def upload_resume_file(
+    file: UploadFile = File(..., description="Resume file (PDF or DOCX)"),
+    google_drive_url: Optional[str] = Form(None, description="Optional Google Drive URL for reference")
+):
+    """
+    Upload a resume file directly with optional Google Drive URL
+    
+    This endpoint allows you to upload resume files directly:
+    - Upload PDF or DOCX files
+    - Optionally provide Google Drive URL for reference
+    - Same AI processing as other endpoints
+    
+    Supported formats: PDF, DOCX, DOC
+    Max file size: 10MB
+    """
+    try:
+        logger.info(f"📤 File upload request: {file.filename}")
+        
+        # Validate file type
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        # Check file extension
+        supported_extensions = ['.pdf', '.docx', '.doc']
+        if not any(file.filename.lower().endswith(ext) for ext in supported_extensions):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported file type. Only {', '.join(supported_extensions)} files are supported."
+            )
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Check file size (10MB limit)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(file_content) > max_size:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File too large. Maximum size is {max_size // (1024*1024)}MB"
+            )
+        
+        logger.info(f"📄 Processing uploaded file: {file.filename} ({len(file_content)} bytes)")
+        
+        # Process the resume
+        result = await resume_manager.upload_resume_from_file(
+            file_content,
+            file.filename,
+            google_drive_url
+        )
+        
+        return FileUploadResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in file upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File upload error: {str(e)}")
+
 @app.get("/api/v1/health")
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "LinkedIn Job Scraper & Candidate Finder API"}
-
-@app.get("/")
 async def root():
     """Root endpoint"""
     return {"message": "LinkedIn Job Scraper & Candidate Finder API", "docs": "/docs"}

@@ -83,3 +83,8 @@ Thumbs.db
 *.log
 logs/
 .vercel
+
+# Credentials and API Keys
+credentials/
+*.json
+!package*.json
