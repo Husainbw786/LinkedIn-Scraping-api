@@ -13,16 +13,18 @@ from services.linkedin_scraper import LinkedInScraper
 from services.job_matcher import JobMatcher
 from services.crustdata_api import CrustDataAPI
 from services.candidate_matcher import CandidateMatcher
+from services.resume_manager import ResumeManager
 from models.schemas import (
     JobResult, ResumeData, SearchResponse, JobDescriptionInput,
-    CandidateSearchResponse, CandidateProfile
+    CandidateSearchResponse, CandidateProfile, ResumeCandidate,
+    ResumeCandidateSearchResponse
 )
 
 load_dotenv()
 
 app = FastAPI(
-    title="LinkedIn Job Scraper & CrustData Candidate Finder API",
-    description="API for LinkedIn job scraping and candidate discovery using CrustData API with OpenAI-powered job analysis",
+    title="LinkedIn Job Scraper & AI-Powered Candidate Finder API",
+    description="Comprehensive API for LinkedIn job scraping and candidate discovery using both CrustData API and resume vector search with OpenAI-powered analysis",
     version="2.0.0"
 )
 
@@ -40,6 +42,7 @@ linkedin_scraper = LinkedInScraper()
 job_matcher = JobMatcher()
 crustdata_api = CrustDataAPI()
 candidate_matcher = CandidateMatcher()
+resume_manager = ResumeManager()
 
 @app.post("/api/v1/search-jobs", response_model=SearchResponse)
 async def search_jobs(
@@ -156,6 +159,37 @@ async def find_candidates(job_input: JobDescriptionInput):
     except Exception as e:
         logger.error(f"Error processing AI-powered candidate search: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI candidate search error: {str(e)}")
+
+@app.post("/api/v1/match-resumes", response_model=ResumeCandidateSearchResponse)
+async def match_resumes(job_input: JobDescriptionInput, top_k: Optional[int] = 10):
+    """
+    Find best matching candidates from resume database based on job description
+    
+    This endpoint uses semantic search to find the most relevant candidates:
+    - Generates embedding for the job description
+    - Performs vector similarity search in Pinecone
+    - Returns ranked candidates with match scores and Google Drive links
+    
+    Features:
+    - Semantic matching (finds relevant candidates even with different terminology)
+    - Ranked results with match scores and explanations
+    - Direct links to resume PDFs on Google Drive
+    - Structured candidate information (skills, experience, etc.)
+    """
+    try:
+        logger.info("🔍 Starting resume matching process")
+        
+        # Find matching candidates
+        result = await resume_manager.find_matching_candidates(
+            job_input.job_description, 
+            top_k
+        )
+        
+        return ResumeCandidateSearchResponse(**result)
+        
+    except Exception as e:
+        logger.error(f"Error in resume matching: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Resume matching error: {str(e)}")
 
 @app.get("/api/v1/health")
 async def health_check():
