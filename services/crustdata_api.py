@@ -96,7 +96,8 @@ class CrustDataAPI:
             # Make the API call
             payload = {
                 "filters": filters,
-                "page": page
+                "page": page,
+                "limit": 10  # Limit results to 10 instead of default 20
             }
             
             logger.info(f"Calling CrustData API with filters: {filters}")
@@ -166,7 +167,8 @@ class CrustDataAPI:
             
             payload = {
                 "filters": filters,
-                "page": page
+                "page": page,
+                "limit": 10  # Limit results to 10 instead of default 20
             }
             
             logger.info(f"Simplified search with filters: {filters}")
@@ -329,7 +331,8 @@ class CrustDataAPI:
             
             payload = {
                 "filters": filters,
-                "page": page
+                "page": page,
+                "limit": 10  # Limit results to 10 instead of default 20
             }
             
             logger.info(f"Searching candidates with filters: {filters}")
@@ -395,7 +398,8 @@ class CrustDataAPI:
             
             payload = {
                 "filters": filters,
-                "page": page
+                "page": page,
+                "limit": 10  # Limit results to 10 instead of default 20
             }
             
             logger.info(f"Fallback search with filters: {filters}")
