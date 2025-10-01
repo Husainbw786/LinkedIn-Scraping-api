@@ -173,11 +173,17 @@ async def match_resumes(job_input: JobDescriptionInput, top_k: Optional[int] = 1
     Features:
     - Semantic matching (finds relevant candidates even with different terminology)
     - Ranked results with match scores and explanations
-    - Direct links to resume PDFs on Google Drive
+    - Direct links to resume PDFs on Google Drive (if available)
     - Structured candidate information (skills, experience, etc.)
+    
+    Note: Requires Pinecone to be configured. Google Drive is optional.
     """
     try:
         logger.info("🔍 Starting resume matching process")
+        
+        # Check if Google Drive is available
+        if not resume_manager.drive_service.is_available:
+            logger.warning("⚠️ Google Drive not available, but proceeding with Pinecone search")
         
         # Find matching candidates
         result = await resume_manager.find_matching_candidates(

@@ -16,6 +16,7 @@ class GoogleDriveService:
         self.credentials_path = os.getenv('GOOGLE_DRIVE_CREDENTIALS_PATH')
         self.folder_id = os.getenv('GOOGLE_DRIVE_FOLDER_ID')
         self.service = None
+        self.is_available = False
         self._initialize_service()
     
     def _initialize_service(self):
@@ -35,9 +36,14 @@ class GoogleDriveService:
             # Build the service
             self.service = build('drive', 'v3', credentials=credentials)
             
+            self.is_available = True
+            logger.info("✅ Google Drive service initialized successfully")
+            
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Google Drive service: {str(e)}")
-            raise
+            logger.warning(f"⚠️ Google Drive service not available: {str(e)}")
+            logger.warning("Google Drive functionality will be disabled")
+            self.is_available = False
+            self.service = None
     
     def list_resume_files(self, folder_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -48,6 +54,9 @@ class GoogleDriveService:
         Returns:
             List of file metadata dictionaries
         """
+        if not self.is_available:
+            logger.warning("Google Drive service not available")
+            return []
         try:
             folder_id = folder_id or self.folder_id
             if not folder_id:
@@ -81,6 +90,9 @@ class GoogleDriveService:
         Returns:
             File content as bytes
         """
+        if not self.is_available:
+            raise RuntimeError("Google Drive service not available")
+            
         import time
         
         for attempt in range(max_retries):

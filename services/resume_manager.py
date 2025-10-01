@@ -16,6 +16,12 @@ class ResumeManager:
         self.pinecone_service = PineconeService()
         self.embedding_service = ResumeEmbeddingService()
         self.executor = ThreadPoolExecutor(max_workers=5)
+        
+        # Check if Google Drive is available
+        if not self.drive_service.is_available:
+            logger.warning("⚠️ ResumeManager initialized without Google Drive functionality")
+        else:
+            logger.info("✅ ResumeManager initialized with full functionality")
     
     async def ingest_all_resumes(self, folder_id: Optional[str] = None) -> Dict[str, Any]:
         """
