@@ -14,10 +14,12 @@ from services.job_matcher import JobMatcher
 from services.crustdata_api import CrustDataAPI
 from services.candidate_matcher import CandidateMatcher
 from services.resume_manager import ResumeManager
+from services.resume_fetcher import ResumeFetcher
+from services.ats_scorer import ATSScorer
 from models.schemas import (
     JobResult, ResumeData, SearchResponse, JobDescriptionInput,
     CandidateSearchResponse, CandidateProfile, ResumeCandidate,
-    ResumeCandidateSearchResponse
+    ResumeCandidateSearchResponse, ATSScoreRequest, ATSScoreResponse
 )
 
 load_dotenv()
@@ -43,6 +45,8 @@ job_matcher = JobMatcher()
 crustdata_api = CrustDataAPI()
 candidate_matcher = CandidateMatcher()
 resume_manager = ResumeManager()
+resume_fetcher = ResumeFetcher()
+ats_scorer = ATSScorer()
 
 @app.post("/api/v1/search-jobs", response_model=SearchResponse)
 async def search_jobs(
@@ -195,6 +199,102 @@ async def match_resumes(job_input: JobDescriptionInput, top_k: Optional[int] = 1
     except Exception as e:
         logger.error(f"Error in resume matching: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Resume matching error: {str(e)}")
+
+@app.post("/api/v1/calculate-ats-score", response_model=ATSScoreResponse)
+async def calculate_ats_score(request: ATSScoreRequest):
+    """
+    Calculate comprehensive ATS score for a resume from URL
+    
+    This endpoint analyzes resumes based on 7 critical criteria:
+    1. Tech Stack Consistency (20%) - Logical technology combinations
+    2. LinkedIn Authenticity & Alignment (15%) - Professional credibility
+    3. Project Depth and Relevance (20%) - Detailed project descriptions
+    4. Resume Length & Format Quality (10%) - Structure and presentation
+    5. Duplicate or Template Content (15%) - Authenticity assessment
+    6. Employment Timeline Coherence (10%) - Career progression logic
+    7. Education and Certification Validation (10%) - Credential relevance
+    
+    Features:
+    - Supports multiple resume formats (PDF, DOCX, Google Docs, HTML)
+    - OpenAI GPT-4o powered analysis
+    - Optional job-specific scoring when job description provided
+    - Detailed feedback and improvement recommendations
+    - Risk assessment and confidence scoring
+    
+    Note: Requires OpenAI API key to be configured.
+    """
+    try:
+        logger.info(f"🎯 Starting ATS score calculation for URL: {request.resume_url}")
+        
+        # Step 1: Fetch and extract resume text
+        extraction_result = await resume_fetcher.fetch_resume_text(request.resume_url)
+        
+        if not extraction_result.success:
+            logger.error(f"Failed to extract resume text: {extraction_result.error}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Could not extract resume content: {extraction_result.error}"
+            )
+        
+        if len(extraction_result.text.strip()) < 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Resume content is too short or empty. Please ensure the URL points to a valid resume document."
+            )
+        
+        logger.info(f"✅ Successfully extracted {len(extraction_result.text)} characters from resume")
+        
+        # Step 2: Calculate ATS score using OpenAI
+        ats_result = await ats_scorer.calculate_ats_score(
+            extraction_result.text, 
+            request.job_description
+        )
+        
+        # Step 3: Format response
+        from models.schemas import CategoryScore, JobAlignment
+        
+        # Convert category scores to proper format
+        formatted_categories = {}
+        for category, data in ats_result.get('category_scores', {}).items():
+            formatted_categories[category] = CategoryScore(
+                score=data.get('score', 0),
+                feedback=data.get('feedback', ''),
+                red_flags=data.get('red_flags', [])
+            )
+        
+        # Handle job alignment if present
+        job_alignment = None
+        if 'job_alignment' in ats_result and ats_result['job_alignment']:
+            job_data = ats_result['job_alignment']
+            job_alignment = JobAlignment(
+                job_match_score=job_data.get('job_match_score', 0),
+                relevant_skills_found=job_data.get('relevant_skills_found', []),
+                missing_critical_skills=job_data.get('missing_critical_skills', []),
+                experience_level_match=job_data.get('experience_level_match', 'Unknown'),
+                job_specific_recommendations=job_data.get('job_specific_recommendations', [])
+            )
+        
+        response = ATSScoreResponse(
+            overall_score=ats_result.get('overall_score', 0),
+            category_scores=formatted_categories,
+            summary=ats_result.get('summary', ''),
+            recommendations=ats_result.get('recommendations', []),
+            risk_level=ats_result.get('risk_level', 'MEDIUM'),
+            confidence_score=ats_result.get('confidence_score', 0),
+            job_alignment=job_alignment,
+            parsing_note=ats_result.get('parsing_note'),
+            error=ats_result.get('error')
+        )
+        
+        logger.info(f"🎉 ATS scoring completed. Overall score: {response.overall_score}/100")
+        return response
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in ATS scoring: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ATS scoring error: {str(e)}")
 
 @app.get("/api/v1/health")
 async def health_check():

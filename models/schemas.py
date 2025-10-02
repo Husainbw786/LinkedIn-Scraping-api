@@ -172,3 +172,43 @@ class FileUploadResponse(BaseModel):
     message: str
     error: Optional[str] = None
     timestamp: datetime = datetime.now()
+
+# New schemas for ATS scoring functionality
+class ATSScoreRequest(BaseModel):
+    """Request structure for ATS scoring"""
+    resume_url: str
+    job_description: Optional[str] = None
+
+class CategoryScore(BaseModel):
+    """Individual category score structure"""
+    score: int
+    feedback: str
+    red_flags: List[str] = []
+
+class JobAlignment(BaseModel):
+    """Job-specific alignment analysis"""
+    job_match_score: int
+    relevant_skills_found: List[str] = []
+    missing_critical_skills: List[str] = []
+    experience_level_match: str
+    job_specific_recommendations: List[str] = []
+
+class ATSScoreResponse(BaseModel):
+    """Response structure for ATS scoring"""
+    overall_score: int
+    category_scores: Dict[str, CategoryScore]
+    summary: str
+    recommendations: List[str]
+    risk_level: str  # LOW, MEDIUM, HIGH
+    confidence_score: int
+    job_alignment: Optional[JobAlignment] = None
+    parsing_note: Optional[str] = None
+    error: Optional[str] = None
+    timestamp: datetime = datetime.now()
+
+class ResumeExtractionResult(BaseModel):
+    """Result of resume text extraction"""
+    text: str
+    success: bool
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = {}
